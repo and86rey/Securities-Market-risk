@@ -3,116 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Securities Market Risk</title>
-    
-    <!-- Chart.js -->
+    <title>Market Risk Metrics</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script defer src="script.js"></script>
-    
-    <!-- Bloomberg-Style Design -->
     <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #0D1117;
-            color: #E6EDF3;
-            text-align: center;
-            margin: 0;
-            padding: 20px;
-        }
-
-        h2 {
-            color: #F4A261;
-            font-size: 26px;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: auto;
-            padding: 20px;
-            background: #161B22;
-            border-radius: 8px;
-            box-shadow: 0px 4px 10px rgba(255, 255, 255, 0.1);
-        }
-
-        input {
-            width: 80%;
-            padding: 12px;
-            font-size: 16px;
-            border: 1px solid #F4A261;
-            border-radius: 6px;
-            background: #21262D;
-            color: #E6EDF3;
-            outline: none;
-            margin-bottom: 10px;
-        }
-
-        button {
-            padding: 12px 20px;
-            font-size: 16px;
-            background: #F4A261;
-            border: none;
-            color: #0D1117;
-            cursor: pointer;
-            font-weight: bold;
-            border-radius: 6px;
-            transition: 0.3s;
-        }
-
-        button:hover {
-            background: #E76F51;
-        }
-
-        .card {
-            background: #1E252E;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            box-shadow: 0px 2px 10px rgba(255, 255, 255, 0.1);
-        }
-
-        .chart-container {
-            width: 90%;
-            max-width: 600px;
-            margin: auto;
-            padding: 10px;
-            background: #161B22;
-            border-radius: 8px;
-        }
-
-        img {
-            max-width: 100%;
-            display: none;
-            border-radius: 8px;
-        }
+        body { font-family: Arial, sans-serif; text-align: center; }
+        .container { max-width: 600px; margin: auto; padding: 20px; }
+        canvas { margin-top: 20px; }
     </style>
 </head>
-
 <body>
-
-    <h2>Securities Market Risk Analysis</h2>
-
     <div class="container">
-        <input type="text" id="securityInput" placeholder="Enter ISIN or Stock Ticker">
-        <button onclick="fetchRiskData()">Analyze</button>
-
-        <!-- Market Risk Result Card -->
-        <div id="output" class="card"></div>
-
-        <!-- Graphs for Beta & VaR -->
-        <div class="chart-container">
-            <h3>Beta Trend (Last 5 Days)</h3>
-            <canvas id="betaChart"></canvas>
-        </div>
-        
-        <div class="chart-container">
-            <h3>Value-at-Risk (VaR) Trend (Last 5 Days)</h3>
-            <canvas id="varChart"></canvas>
-        </div>
-
-        <!-- If using Python or R to generate an image -->
-        <h3>Risk Graph from Backend</h3>
-        <img id="graph" src="" alt="Risk Analysis Graph">
+        <h2>Enter Security Ticker</h2>
+        <input type="text" id="ticker" placeholder="AAPL, TSLA, etc.">
+        <button onclick="fetchData()">Get Metrics</button>
+        <h3>Beta</h3>
+        <canvas id="betaChart"></canvas>
+        <h3>Value at Risk (VaR)</h3>
+        <canvas id="varChart"></canvas>
     </div>
 
+    <script>
+        async function fetchData() {
+            const ticker = document.getElementById('ticker').value;
+            if (!ticker) { alert('Enter a ticker symbol'); return; }
+
+            const response = await fetch(`/api/metrics?ticker=${ticker}`);
+            const data = await response.json();
+
+            renderChart('betaChart', 'Beta Over Last 5 Days', data.beta);
+            renderChart('varChart', 'VaR Over Last 5 Days', data.var);
+        }
+
+        function renderChart(canvasId, label, data) {
+            new Chart(document.getElementById(canvasId), {
+                type: 'line',
+                data: {
+                    labels: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5'],
+                    datasets: [{ label, data, borderColor: 'blue', fill: false }]
+                },
+            });
+        }
+    </script>
 </body>
 </html>
