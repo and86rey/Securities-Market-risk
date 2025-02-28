@@ -1,50 +1,63 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import requests
 import pandas as pd
-import numpy as np
+import matplotlib.pyplot as plt
+import io
+import base64
 
 app = Flask(__name__)
 
-FMP_API_KEY = "your_fmp_api_key"
-FMP_BASE_URL = "https://financialmodelingprep.com/api/v3"
+FMP_API_KEY = "WcXMJO2SufKTeiFKpSxxpBO1sO41uUQI"  # Replace with your actual API key
 
-def get_stock_data(ticker):
-    url = f"{FMP_BASE_URL}/historical-price-full/{ticker}?apikey={FMP_API_KEY}"
-    response = requests.get(url).json()
-    if "historical" in response:
-        df = pd.DataFrame(response["historical"][:30])  # Last 30 days
-        df = df[["date", "close"]].set_index("date").sort_index()
-        return df
-    return None
+@app.route("/")
+def home():
+    return render_template("index.html")
 
-def calculate_beta_var(ticker):
-    df = get_stock_data(ticker)
-    if df is None:
-        return {"error": "Invalid ticker or data unavailable"}
+@app.route("/api/financials", methods=["GET"])
+def get_financial_data():
+    query = request.args.get("query")
+    if not query:
+        return jsonify({"error": "No query provided"}), 400
 
-    df["returns"] = df["close"].pct_change().dropna()
-    
-    market_df = get_stock_data("^GSPC")  # S&P 500 as market benchmark
-    market_df["returns"] = market_df["close"].pct_change().dropna()
+    url = f"https://financialmodelingprep.com/api/v3/profile/{query}?apikey={FMP_API_KEY}"
+    response = requests.get(url)
+    data = response.json()
 
-    combined = df.join(market_df, lsuffix="_stock", rsuffix="_market").dropna()
-    beta = np.cov(combined["returns_stock"], combined["returns_market"])[0, 1] / np.var(combined["returns_market"])
-    
-    var_5_days = df["returns"].tail(5).quantile(0.05)
+    if not data:
+        return jsonify({"error": "No data found"}), 404
 
-    return {
-        "beta": [beta] * 5,  # Simulating for 5 days
-        "var": [var_5_days] * 5
-    }
+    return jsonify(data[0])
 
-@app.route("/api/metrics", methods=["GET"])
-def metrics():
+@app.route("/api/beta", methods=["GET"])
+def get_beta():
     ticker = request.args.get("ticker")
     if not ticker:
         return jsonify({"error": "No ticker provided"}), 400
-    
-    data = calculate_beta_var(ticker)
-    return jsonify(data)
+
+    url = f"https://financialmodelingprep.com/api/v3/stock-beta/{ticker}?apikey={FMP_API_KEY}"
+    response = requests.get(url)
+    data = response.json()
+
+    beta_values = [entry["beta"] for entry in data]
+
+    return jsonify({"beta": beta_values})
+
+@app.route("/api/var", methods=["GET"])
+def get_var():
+    ticker = request.args.get("ticker")
+    if not ticker:
+        return jsonify({"error": "No ticker provided"}), 400
+
+    url = f"https://financialmodelingprep.com/api/v3/historical-price-full/{ticker}?timeseries=5&apikey={FMP_API_KEY}"
+    response = requests.get(url)
+    data = response.json()
+
+    if "historical" not in data:
+        return jsonify({"error": "No historical data found"}), 404
+
+    var_values = [entry["changePercent"] for entry in data["historical"]]
+
+    return jsonify({"var": var_values})
 
 if __name__ == "__main__":
-    app.run(port=5000, debug=True)
+    app.run(debug=True)
