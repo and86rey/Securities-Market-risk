@@ -1,38 +1,17 @@
-const betaCanvas = document.getElementById("betaChart").getContext("2d");
-const varCanvas = document.getElementById("varChart").getContext("2d");
+package com.market.risk;
 
-// Clear previous charts
-if (window.betaChart) window.betaChart.destroy();
-if (window.varChart) window.varChart.destroy();
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
+import java.util.Map;
 
-// Create Beta Trend Chart
-window.betaChart = new Chart(betaCanvas, {
-    type: "line",
-    data: {
-        labels: ["Day 1", "Day 2", "Day 3", "Day 4", "Day 5"],
-        datasets: [{
-            label: "Beta",
-            data: data.beta_values,
-            borderColor: "red",
-            fill: false,
-            tension: 0.3
-        }]
-    },
-    options: { responsive: true, scales: { y: { beginAtZero: false } } }
-});
+@RestController
+@RequestMapping("/api")
+public class MarketRiskController {
 
-// Create VaR Trend Chart
-window.varChart = new Chart(varCanvas, {
-    type: "line",
-    data: {
-        labels: ["Day 1", "Day 2", "Day 3", "Day 4", "Day 5"],
-        datasets: [{
-            label: "Value-at-Risk (VaR)",
-            data: data.var_values,
-            borderColor: "green",
-            fill: false,
-            tension: 0.3
-        }]
-    },
-    options: { responsive: true, scales: { y: { beginAtZero: false } } }
-});
+    @GetMapping("/metrics")
+    public Map<String, Object> getMetrics(@RequestParam String ticker) {
+        String pythonApiUrl = "http://localhost:5000/api/metrics?ticker=" + ticker;
+        RestTemplate restTemplate = new RestTemplate();
+        return restTemplate.getForObject(pythonApiUrl, Map.class);
+    }
+}
