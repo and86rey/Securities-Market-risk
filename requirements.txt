@@ -1,4 +1,5 @@
 flask
 requests
+matplotlib
 pandas
-numpy
+chart.js
