@@ -1,74 +1,50 @@
 from flask import Flask, request, jsonify
 import requests
+import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-from io import BytesIO
-import base64
 
 app = Flask(__name__)
 
-API_KEY = "WcXMJO2SufKTeiFKpSxxpBO1sO41uUQI"
-FMP_URL = "https://financialmodelingprep.com/api/v3/historical-price-full/"
+FMP_API_KEY = "your_fmp_api_key"
+FMP_BASE_URL = "https://financialmodelingprep.com/api/v3"
 
-def get_stock_data(symbol):
-    response = requests.get(f"{FMP_URL}{symbol}?timeseries=5&apikey={API_KEY}")
-    data = response.json()
-    return data.get("historical", [])
+def get_stock_data(ticker):
+    url = f"{FMP_BASE_URL}/historical-price-full/{ticker}?apikey={FMP_API_KEY}"
+    response = requests.get(url).json()
+    if "historical" in response:
+        df = pd.DataFrame(response["historical"][:30])  # Last 30 days
+        df = df[["date", "close"]].set_index("date").sort_index()
+        return df
+    return None
 
-@app.route("/analyze", methods=["GET"])
-def analyze():
-    symbol = request.args.get("symbol", "").upper()
-    if not symbol:
-        return jsonify({"error": "No symbol provided"}), 400
+def calculate_beta_var(ticker):
+    df = get_stock_data(ticker)
+    if df is None:
+        return {"error": "Invalid ticker or data unavailable"}
 
-    prices = get_stock_data(symbol)
-    if not prices:
-        return jsonify({"error": "No data found"}), 404
+    df["returns"] = df["close"].pct_change().dropna()
+    
+    market_df = get_stock_data("^GSPC")  # S&P 500 as market benchmark
+    market_df["returns"] = market_df["close"].pct_change().dropna()
 
-    # Extract closing prices
-    close_prices = [p["close"] for p in prices][::-1]  # Reverse for oldest to newest
-    dates = [p["date"] for p in prices][::-1]
+    combined = df.join(market_df, lsuffix="_stock", rsuffix="_market").dropna()
+    beta = np.cov(combined["returns_stock"], combined["returns_market"])[0, 1] / np.var(combined["returns_market"])
+    
+    var_5_days = df["returns"].tail(5).quantile(0.05)
 
-    # Compute daily returns
-    returns = np.diff(close_prices) / close_prices[:-1]
+    return {
+        "beta": [beta] * 5,  # Simulating for 5 days
+        "var": [var_5_days] * 5
+    }
 
-    # Compute volatility
-    volatility = np.std(returns) * 100
-
-    # Simulated Beta values (as FMP doesn’t provide daily Beta)
-    beta_values = np.linspace(1, 1.2, len(dates))  # Mock example
-
-    # Compute VaR (95% confidence level)
-    VaR_values = 1.65 * beta_values * volatility
-
-    # Plot the graph
-    plt.figure(figsize=(8, 4))
-    plt.plot(dates, beta_values, label="Beta", color="red")
-    plt.plot(dates, VaR_values, label="VaR", color="green")
-    plt.legend()
-    plt.xticks(rotation=45)
-    plt.xlabel("Date")
-    plt.ylabel("Risk Metrics")
-    plt.title(f"Beta & VaR for {symbol}")
-
-    # Save plot to a PNG image in memory
-    img_io = BytesIO()
-    plt.savefig(img_io, format="png")
-    img_io.seek(0)
-    img_base64 = base64.b64encode(img_io.getvalue()).decode()
-
-    return jsonify({
-        "symbol": symbol,
-        "volatility": round(volatility, 2),
-        "beta_values": beta_values.tolist(),
-        "var_values": VaR_values.tolist(),
-        "image": f"data:image/png;base64,{img_base64}"
-    })
+@app.route("/api/metrics", methods=["GET"])
+def metrics():
+    ticker = request.args.get("ticker")
+    if not ticker:
+        return jsonify({"error": "No ticker provided"}), 400
+    
+    data = calculate_beta_var(ticker)
+    return jsonify(data)
 
 if __name__ == "__main__":
-    app.run(debug=True)
-import os
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))  # Get port from Render, default to 5000
-    app.run(host="0.0.0.0", port=port)
+    app.run(port=5000, debug=True)
