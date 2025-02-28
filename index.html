@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Securities Market Risk</title>
-    <script defer src="script.js"></script>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; margin: 50px; }
         input, button { padding: 10px; font-size: 16px; margin: 10px; }
@@ -13,8 +12,11 @@
 </head>
 <body>
     <h2>Market Risk Analysis</h2>
-    <input type="text" id="securityInput" placeholder="Enter ISIN or Security Name">
+    <input type="text" id="securityInput" placeholder="Enter ISIN or Stock Ticker">
     <button onclick="fetchRiskData()">Analyze</button>
     <div id="output"></div>
+
+    <!-- Link JavaScript File -->
+    <script src="script.js"></script>
 </body>
 </html>
