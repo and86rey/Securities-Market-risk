@@ -1,20 +1,19 @@
 async function fetchRiskData() {
     const input = document.getElementById("securityInput").value.trim();
     const outputDiv = document.getElementById("output");
-    const betaCanvas = document.getElementById("betaChart").getContext("2d");
-    const varCanvas = document.getElementById("varChart").getContext("2d");
+    const graphImage = document.getElementById("graph");
 
     if (!input) {
         outputDiv.innerHTML = "<p style='color:red;'>Please enter a valid ISIN or stock ticker.</p>";
         return;
     }
 
-    const apiUrl = `http://127.0.0.1:5000/analyze?symbol=${input}`; // Adjust for R API if needed
+    const backendUrl = "https://securities-market-risk-api.onrender.com"; // Replace with your actual Render URL
 
     try {
         outputDiv.innerHTML = "<p>Fetching market risk data...</p>";
 
-        const response = await fetch(apiUrl);
+        const response = await fetch(`${backendUrl}/analyze?symbol=${input}`);
         const data = await response.json();
 
         if (data.error) {
@@ -22,14 +21,18 @@ async function fetchRiskData() {
             return;
         }
 
+        // Display text data
         const riskInfo = `
             <h3>${data.symbol}</h3>
             <p><strong>Volatility (5 Days):</strong> ${data.volatility}%</p>
         `;
         outputDiv.innerHTML = riskInfo;
 
-        // Display Graph
-        document.getElementById("graph").src = data.image;
+        // Display Base64 Image
+        if (data.image) {
+            graphImage.src = data.image; // Set image source
+            graphImage.style.display = "block"; // Make sure it's visible
+        }
 
     } catch (error) {
         console.error("Error fetching data:", error);
