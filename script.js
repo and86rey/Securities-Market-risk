@@ -1,41 +1,38 @@
-async function fetchRiskData() {
-    const input = document.getElementById("securityInput").value.trim();
-    const outputDiv = document.getElementById("output");
-    const graphImage = document.getElementById("graph");
+const betaCanvas = document.getElementById("betaChart").getContext("2d");
+const varCanvas = document.getElementById("varChart").getContext("2d");
 
-    if (!input) {
-        outputDiv.innerHTML = "<p style='color:red;'>Please enter a valid ISIN or stock ticker.</p>";
-        return;
-    }
+// Clear previous charts
+if (window.betaChart) window.betaChart.destroy();
+if (window.varChart) window.varChart.destroy();
 
-    const backendUrl = "https://securities-market-risk-api.onrender.com"; // Replace with your actual Render URL
+// Create Beta Trend Chart
+window.betaChart = new Chart(betaCanvas, {
+    type: "line",
+    data: {
+        labels: ["Day 1", "Day 2", "Day 3", "Day 4", "Day 5"],
+        datasets: [{
+            label: "Beta",
+            data: data.beta_values,
+            borderColor: "red",
+            fill: false,
+            tension: 0.3
+        }]
+    },
+    options: { responsive: true, scales: { y: { beginAtZero: false } } }
+});
 
-    try {
-        outputDiv.innerHTML = "<p>Fetching market risk data...</p>";
-
-        const response = await fetch(`${backendUrl}/analyze?symbol=${input}`);
-        const data = await response.json();
-
-        if (data.error) {
-            outputDiv.innerHTML = `<p style='color:red;'>${data.error}</p>`;
-            return;
-        }
-
-        // Display text data
-        const riskInfo = `
-            <h3>${data.symbol}</h3>
-            <p><strong>Volatility (5 Days):</strong> ${data.volatility}%</p>
-        `;
-        outputDiv.innerHTML = riskInfo;
-
-        // Display Base64 Image
-        if (data.image) {
-            graphImage.src = data.image; // Set image source
-            graphImage.style.display = "block"; // Make sure it's visible
-        }
-
-    } catch (error) {
-        console.error("Error fetching data:", error);
-        outputDiv.innerHTML = "<p style='color:red;'>Error fetching market risk data. Please try again later.</p>";
-    }
-}
+// Create VaR Trend Chart
+window.varChart = new Chart(varCanvas, {
+    type: "line",
+    data: {
+        labels: ["Day 1", "Day 2", "Day 3", "Day 4", "Day 5"],
+        datasets: [{
+            label: "Value-at-Risk (VaR)",
+            data: data.var_values,
+            borderColor: "green",
+            fill: false,
+            tension: 0.3
+        }]
+    },
+    options: { responsive: true, scales: { y: { beginAtZero: false } } }
+});
