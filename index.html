@@ -3,46 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Market Risk Metrics</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; }
-        .container { max-width: 600px; margin: auto; padding: 20px; }
-        canvas { margin-top: 20px; }
-    </style>
+    <title>Market Risk Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
-        <h2>Enter Security Ticker</h2>
-        <input type="text" id="ticker" placeholder="AAPL, TSLA, etc.">
-        <button onclick="fetchData()">Get Metrics</button>
-        <h3>Beta</h3>
-        <canvas id="betaChart"></canvas>
-        <h3>Value at Risk (VaR)</h3>
-        <canvas id="varChart"></canvas>
+        <header>
+            <h1>Market Risk Dashboard</h1>
+        </header>
+        <main>
+            <div class="input-section">
+                <input type="text" id="searchInput" placeholder="Enter company name, ISIN, or ticker">
+                <button id="searchButton">Get Data</button>
+            </div>
+            <div class="output-section">
+                <div id="financialData"></div>
+                <div class="charts">
+                    <canvas id="betaChart"></canvas>
+                    <canvas id="varChart"></canvas>
+                </div>
+            </div>
+        </main>
     </div>
-
-    <script>
-        async function fetchData() {
-            const ticker = document.getElementById('ticker').value;
-            if (!ticker) { alert('Enter a ticker symbol'); return; }
-
-            const response = await fetch(`/api/metrics?ticker=${ticker}`);
-            const data = await response.json();
-
-            renderChart('betaChart', 'Beta Over Last 5 Days', data.beta);
-            renderChart('varChart', 'VaR Over Last 5 Days', data.var);
-        }
-
-        function renderChart(canvasId, label, data) {
-            new Chart(document.getElementById(canvasId), {
-                type: 'line',
-                data: {
-                    labels: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5'],
-                    datasets: [{ label, data, borderColor: 'blue', fill: false }]
-                },
-            });
-        }
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
